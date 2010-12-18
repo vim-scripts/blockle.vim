@@ -1,0 +1,24 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=3373
+
+This plugin allows rapid toggling between the two different styles of ruby
+blocks, namely do/end and brackets {}. To use, simply move the cursor to the
+beginning or end of a block, and type <Leader>b. As a mnemonic, remember 'b'
+for 'block'.
+
+Note: You must have your cursor on the do, end, {, or } for the plugin to work
+correctly.
+
+When moving from a do/end to a bracket-style block, the plugin with attempt to
+move to a one-liner if appropriate:
+
+For example, if have the following ruby code:
+
+  ['one', 'two'].each do |number|
+    puts number + "!"
+  end
+
+After invoking <Leader>b, the resulting code would be:
+
+  ['one', 'two'].each { |number| puts number + "!" }
+
+
