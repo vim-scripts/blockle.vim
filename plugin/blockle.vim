@@ -1,6 +1,6 @@
 " blockle.vim - Ruby Block Toggling
 " Author:       Joshua Davey <josh@joshuadavey.com>
-" Version:      0.1
+" Version:      0.2
 "
 " Licensed under the same terms as Vim itself.
 " ============================================================================
@@ -9,7 +9,7 @@
 " - this plugin was already loaded (or disabled)
 " - when 'compatible' is set
 if (exists("g:loaded_blockle") && g:loaded_blockle) || &cp
-    finish
+  finish
 endif
 let g:loaded_blockle = 1
 
@@ -37,14 +37,17 @@ function! s:ConvertBracketsToDoEnd()
   call setpos('.', begin_pos)
   norm! sdo
   call setpos('.', end_pos)
-  if getline('.')[col('.')-1] != 'e'
-    norm! l
-  endif
-  norm! send
-  call setpos('.', begin_pos)
-  " Still need to fix indentation
 
   if begin_num == end_num " Was a one-liner
+    if getline('.')[col('.')-1] == ' '
+      norm! x
+    else
+      norm! l
+      let end_pos = getpos('.')
+    endif
+    norm! send
+    call setpos('.', begin_pos)
+
     " Has block parameters
     if search('\vdo *\|', 'c', begin_num)
       let end_of_line = '2f|'
@@ -53,12 +56,15 @@ function! s:ConvertBracketsToDoEnd()
     endif
     call setpos('.', end_pos)
     exe "norm! i\<cr>"
-    let end_pos = getpos('.')
     call setpos('.', begin_pos)
     exe "norm! ".end_of_line."a\<cr>"
     call setpos('.', begin_pos)
-    if search('do|', 'c', begin_num) | :.s/do|/do |/ | endif
-    exe begin_num.','.end_num.'Trim'
+    if search('do|', 'c', begin_num)
+      :.s/do|/do |/
+      call setpos('.', begin_pos)
+    endif
+  else
+    norm! send
     call setpos('.', begin_pos)
   endif
 endfunction
@@ -74,17 +80,16 @@ function! s:ConvertDoEndToBrackets()
   let do_pos = getpos('.')
   let begin_num = line('.')
   norm %
-  let end_pos = getpos('.')
-  let end_num = line('.')
+  let lines = (line('.')-begin_num+1)
 
   norm ciw}
   call setpos('.', do_pos)
   norm ciw{
 
-  if (end_num-begin_num) == 2
+  if lines == 3
     norm! JJ
     " Remove extraneous spaces
-    if search('  \+', 'c', begin_num) | :.s/\([^ ]\)  \+/\1 /g | endif
+    " if search('  \+', 'c', begin_num) | :.s/\([^ ]\)  \+/\1 /g | endif
     call setpos('.', do_pos)
   endif
 endfunction
@@ -101,7 +106,6 @@ function! s:goToNearestBlockBounds()
   endif
 
   let endline = line('.')+5
-  echo endline
   if search('\vend|}', 'cs', endline)
     return expand('<cword>')
   endif
@@ -114,12 +118,12 @@ function! s:ToggleDoEndOrBrackets()
 
   let block_bound = s:goToNearestBlockBounds()
 
-  if block_bound =~ '[{}]'
+  if block_bound =='{' || block_bound == '}'
     call <SID>ConvertBracketsToDoEnd()
-  elseif block_bound =~ '\vdo|end'
+  elseif block_bound ==# 'do' || block_bound ==# 'end'
     call <SID>ConvertDoEndToBrackets()
   else
-    throw 'Cannot toggle block: cursor is not on {, }, do or end'
+    echo 'Cannot toggle block: cursor is not on {, }, do or end'
   endif
 
   silent! call repeat#set("\<Plug>BlockToggle", -1)
