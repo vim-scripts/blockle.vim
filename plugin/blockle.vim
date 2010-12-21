@@ -1,6 +1,6 @@
 " blockle.vim - Ruby Block Toggling
 " Author:       Joshua Davey <josh@joshuadavey.com>
-" Version:      0.2
+" Version:      0.3
 "
 " Licensed under the same terms as Vim itself.
 " ============================================================================
@@ -8,10 +8,10 @@
 " Exit quickly when:
 " - this plugin was already loaded (or disabled)
 " - when 'compatible' is set
-if (exists("g:loaded_blockle") && g:loaded_blockle) || &cp
-  finish
-endif
-let g:loaded_blockle = 1
+" if (exists("g:loaded_blockle") && g:loaded_blockle) || &cp
+  " finish
+" endif
+" let g:loaded_blockle = 1
 
 let s:cpo_save = &cpo
 set cpo&vim
@@ -96,17 +96,16 @@ endfunction
 
 function! s:goToNearestBlockBounds()
   let char = getline('.')[col('.')-1]
-  if char =~ '[{}]'
+  if char == '{' || char == '}'
     return char
   endif
-
   let word = expand('<cword>')
-  if word =~ '\vdo|end'
+  if (word == 'do' || word == 'end') && char != ' '
     return word
-  endif
-
-  let endline = line('.')+5
-  if search('\vend|}', 'cs', endline)
+  elseif searchpair('{', '', '}', 'bcW') > 0
+    return getline('.')[col('.')-1]
+  elseif searchpair('\<do\>', '', '\<end\>\zs', 'bcW',
+        \ 'synIDattr(synID(line("."), col("."), 0), "name") =~? "string"') > 0
     return expand('<cword>')
   endif
 
@@ -114,14 +113,12 @@ function! s:goToNearestBlockBounds()
 endfunction
 
 function! s:ToggleDoEndOrBrackets()
-  if &ft!='ruby' | return | endif
-
   let block_bound = s:goToNearestBlockBounds()
 
   if block_bound =='{' || block_bound == '}'
-    call <SID>ConvertBracketsToDoEnd()
+    call s:ConvertBracketsToDoEnd()
   elseif block_bound ==# 'do' || block_bound ==# 'end'
-    call <SID>ConvertDoEndToBrackets()
+    call s:ConvertDoEndToBrackets()
   else
     echo 'Cannot toggle block: cursor is not on {, }, do or end'
   endif
@@ -131,8 +128,10 @@ endfunction
 
 nnoremap <silent> <Plug>BlockToggle :<C-U>call <SID>ToggleDoEndOrBrackets()<CR>
 
-map <leader>b <Plug>BlockToggle
-
+augroup blockle
+  autocmd!
+  autocmd FileType ruby map <buffer> <leader>b <Plug>BlockToggle
+augroup END
 
 let &cpo = s:cpo_save
 
