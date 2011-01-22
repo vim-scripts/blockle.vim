@@ -1,6 +1,6 @@
 " blockle.vim - Ruby Block Toggling
 " Author:       Joshua Davey <josh@joshuadavey.com>
-" Version:      0.3
+" Version:      0.4
 "
 " Licensed under the same terms as Vim itself.
 " ============================================================================
@@ -8,10 +8,10 @@
 " Exit quickly when:
 " - this plugin was already loaded (or disabled)
 " - when 'compatible' is set
-" if (exists("g:loaded_blockle") && g:loaded_blockle) || &cp
-  " finish
-" endif
-" let g:loaded_blockle = 1
+if (exists("g:loaded_blockle") && g:loaded_blockle) || &cp
+  finish
+endif
+let g:loaded_blockle = 1
 
 let s:cpo_save = &cpo
 set cpo&vim
@@ -113,8 +113,13 @@ function! s:goToNearestBlockBounds()
 endfunction
 
 function! s:ToggleDoEndOrBrackets()
-  let block_bound = s:goToNearestBlockBounds()
+  " Save anonymous register and clipboard settings
+  let reg = getreg('"', 1)
+  let regtype = getregtype('"')
+  let cb_save = &clipboard
+  set clipboard-=unnamed
 
+  let block_bound = s:goToNearestBlockBounds()
   if block_bound =='{' || block_bound == '}'
     call s:ConvertBracketsToDoEnd()
   elseif block_bound ==# 'do' || block_bound ==# 'end'
@@ -122,6 +127,10 @@ function! s:ToggleDoEndOrBrackets()
   else
     echo 'Cannot toggle block: cursor is not on {, }, do or end'
   endif
+
+  " Restore anonymous register and clipboard settings
+  call setreg('"', reg, regtype)
+  let &clipboard = cb_save
 
   silent! call repeat#set("\<Plug>BlockToggle", -1)
 endfunction
